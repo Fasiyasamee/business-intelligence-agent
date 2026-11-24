@@ -1,48 +1,67 @@
-
 # Business Intelligence Agent
 
-An AI-powered Business Intelligence application that analyses sales data, generates business insights, and answers questions using a local AI model.
+An AI-powered Business Intelligence Dashboard built using Python, Streamlit, Pandas, Matplotlib and Groq.
 
-## Features
+## Project Overview
 
-- Interactive business dashboard
-- Revenue and profit calculations
-- Product and category performance analysis
-- Monthly business performance analysis
-- Interactive charts and visualisations
-- Excel and PDF report downloads
-- AI-powered business assistant
-- Conversational chat history
+The Business Intelligence Agent is a web-based application designed to help businesses understand their sales performance through interactive dashboards, data visualisations, automated business insights and an AI-powered assistant.
+
+Users can explore sales data, analyse revenue and profit, compare product and category performance, and ask questions about their business data in natural language.
+
+## Key Features
+
+- **Sales Dashboard:** Displays important business metrics, including total revenue, profit, orders and top-performing products.
+- **Data Visualisation:** Presents product profitability, category revenue and monthly performance through charts.
+- **Business Insights:** Generates useful observations and recommendations from sales data.
+- **AI Business Assistant:** Allows users to ask questions about their sales data using natural language.
+- **Data Upload:** Supports uploading sales CSV files with the required column structure.
+- **Excel Export:** Exports sales and analysis data into an Excel workbook.
+- **PDF Export:** Generates downloadable business reports.
 
 ## Technologies Used
 
-- Python 3.12
-- Pandas
-- Streamlit
-- Matplotlib
-- Ollama
-- Llama 3.2 (1B)
+| Technology | Purpose |
+|---|---|
+| Python | Main programming language |
+| Streamlit | Web application and dashboard |
+| Pandas | Data processing and analysis |
+| Matplotlib | Data visualisation |
+| Groq API | Hosted AI assistant |
+| Ollama | Local AI model support |
+| ReportLab | PDF report generation |
+| OpenPyXL | Excel file generation |
 
-## Project Structure
+## How It Works
 
-- app.py – Main Streamlit dashboard
-- ai_assistant.py – AI business assistant
-- sales_data.csv – Sample sales dataset
-- visual_analysis.py – Data visualisation
-- business_insights.py – Business insights
+1. The application loads sales data from a CSV file.
+2. Pandas processes the data and calculates revenue and profit.
+3. The dashboard displays business metrics and visualisations.
+4. The application generates business insights from the processed data.
+5. The AI assistant uses the sales information to answer user questions.
+6. Users can export reports in Excel and PDF formats.
 
-## How to Run
+## Dataset Structure
 
-1. Install Python and the required packages.
-2. Install Ollama and download the model:
+The application expects these columns in the sales CSV file:
 
-   ollama pull llama3.2:1b
+- Order_ID
+- Date
+- Product
+- Category
+- Quantity
+- Unit_Price
+- Cost
 
-3. Open the project folder in the terminal.
-4. Run:
+## Deployment
 
-   py -3.12 -m streamlit run app.py
+The application is deployed using Streamlit Community Cloud and connected to GitHub.
 
-## Purpose
+The online AI assistant uses the Groq API. The API key is configured through Streamlit Secrets and should never be committed to the public repository.
 
-This project demonstrates how Python, data analytics, dashboards, and local AI models can work together to support business decision-making.
+## Project Objective
+
+The objective of this project is to demonstrate how Python, data analytics, visualisation and AI can be combined to build a practical business intelligence solution.
+
+## Author
+
+Developed as a hands-on Business Intelligence and AI project.
