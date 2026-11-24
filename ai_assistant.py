@@ -1,143 +1,138 @@
 
+import os
 import pandas as pd
-import ollama
+
+
+def get_groq_api_key():
+    # First check environment variables
+    api_key = os.getenv("GROQ_API_KEY")
+
+    if api_key:
+        return api_key
+
+    # Then check Streamlit Cloud Secrets
+    try:
+        import streamlit as st
+        return st.secrets["GROQ_API_KEY"]
+    except Exception:
+        return None
 
 
 def answer_question(question, df):
 
-    data = df.copy()
+    try:
+        # Prepare sales data
+        data = df.copy()
 
-    # Calculate revenue and profit
-    data["Revenue"] = data["Quantity"] * data["Unit_Price"]
-    data["Profit"] = data["Quantity"] * (
-        data["Unit_Price"] - data["Cost"]
-    )
+        if "Revenue" not in data.columns:
+            data["Revenue"] = (
+                data["Quantity"] * data["Unit_Price"]
+            )
 
-    # Overall business performance
-    total_revenue = data["Revenue"].sum()
-    total_profit = data["Profit"].sum()
-    total_orders = len(data)
+        if "Profit" not in data.columns:
+            data["Profit"] = (
+                data["Revenue"] - data["Cost"] * data["Quantity"]
+            )
 
-    # Product performance
-    product_summary = data.groupby("Product").agg(
-        Revenue=("Revenue", "sum"),
-        Profit=("Profit", "sum"),
-        Quantity_Sold=("Quantity", "sum")
-    ).sort_values("Profit", ascending=False)
+        total_revenue = data["Revenue"].sum()
+        total_profit = data["Profit"].sum()
+        total_orders = len(data)
 
-    # Category performance
-    category_summary = data.groupby("Category").agg(
-        Revenue=("Revenue", "sum"),
-        Profit=("Profit", "sum"),
-        Quantity_Sold=("Quantity", "sum")
-    ).sort_values("Revenue", ascending=False)
-
-    # Monthly trends
-    data["Date"] = pd.to_datetime(data["Date"], errors="coerce")
-
-    valid_dates = data.dropna(subset=["Date"])
-
-    if not valid_dates.empty:
-        monthly_summary = valid_dates.groupby(
-            valid_dates["Date"].dt.to_period("M")
-        ).agg(
-            Revenue=("Revenue", "sum"),
-            Profit=("Profit", "sum")
+        product_performance = (
+            data.groupby("Product")[["Revenue", "Profit"]]
+            .sum()
+            .sort_values("Profit", ascending=False)
         )
-        monthly_summary.index = monthly_summary.index.astype(str)
-        monthly_data = monthly_summary.to_string()
-    else:
-        monthly_data = "Monthly trend data is unavailable."
 
-    # Identify strongest and weakest products
-    best_product = product_summary["Profit"].idxmax()
-    worst_product = product_summary["Profit"].idxmin()
+        category_performance = (
+            data.groupby("Category")[["Revenue", "Profit"]]
+            .sum()
+        )
 
-    # Give the AI the actual business information
-    business_data = f"""
-BUSINESS OVERVIEW
+        business_data = f"""
+        TOTAL REVENUE: {total_revenue}
+        TOTAL PROFIT: {total_profit}
+        TOTAL ORDERS: {total_orders}
 
-Total Revenue: {total_revenue}
-Total Profit: {total_profit}
-Total Orders: {total_orders}
+        PRODUCT PERFORMANCE:
+        {product_performance.to_string()}
 
-PRODUCT PERFORMANCE:
-{product_summary.to_string()}
+        CATEGORY PERFORMANCE:
+        {category_performance.to_string()}
+        """
 
-CATEGORY PERFORMANCE:
-{category_summary.to_string()}
+        prompt = f"""
+        You are an intelligent Business Intelligence Assistant.
 
-MONTHLY PERFORMANCE:
-{monthly_data}
+        You help business owners understand their sales data.
 
-Most Profitable Product: {best_product}
-Least Profitable Product: {worst_product}
-"""
+        Use ONLY the business data provided below.
+        Do not invent numbers or facts.
+        If the data does not answer a question, say so.
 
-    prompt = f"""
-You are an advanced Business Intelligence Analyst.
+        Give clear, useful business explanations.
+        Use simple language and provide recommendations
+        when appropriate.
 
-Analyse the business data and answer the user's question.
+        BUSINESS DATA:
+        {business_data}
 
-You can help with:
-- Revenue and profit analysis
-- Product comparisons
-- Category comparisons
-- Monthly performance trends
-- Identifying weak-performing products
-- Business opportunities
-- Practical recommendations
+        USER QUESTION:
+        {question}
+        """
 
-IMPORTANT RULES:
-1. Use the supplied business data.
-2. Never invent numbers or trends.
-3. Explain calculations and comparisons clearly.
-4. Use simple, professional language.
-5. Give actionable recommendations.
-6. If information is unavailable, say so.
-7. Format answers with headings and bullet points when useful.
+        api_key = get_groq_api_key()
 
-BUSINESS DATA:
-{business_data}
+        # Use Groq for the online app
+        if api_key:
+            from groq import Groq
 
-USER QUESTION:
-{question}
-"""
+            client = Groq(api_key=api_key)
 
-    response = ollama.chat(
-        model="llama3.2:1b",
-        messages=[
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ]
-    )
+            response = client.chat.completions.create(
+                model="openai/gpt-oss-20b",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                temperature=0.3,
+                max_completion_tokens=1200
+            )
 
-    return response["message"]["content"]
+            return response.choices[0].message.content
 
+        # Use local Ollama if no Groq key is configured
+        import ollama
 
-# Terminal chatbot
-# This does not run when Streamlit imports this file.
+        response = ollama.chat(
+            model="llama3.2:1b",
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ]
+        )
+
+        return response["message"]["content"]
+
+    except Exception as e:
+        return f"AI Assistant Error: {str(e)}"
+
 
 if __name__ == "__main__":
 
     df = pd.read_csv("sales_data.csv")
 
-    print("\nAI BUSINESS INTELLIGENCE 2.0")
-    print("Ask a business question or type 'exit'.\n")
+    print("Business Intelligence AI Assistant")
+    print("Type 'exit' to quit.")
 
     while True:
+        question = input("\nAsk a business question: ")
 
-        question = input("You: ")
-
-        if question.lower().strip() == "exit":
-            print("Goodbye!")
+        if question.lower() == "exit":
             break
 
-        try:
-            answer = answer_question(question, df)
-            print("\nAI Assistant:", answer, "\n")
-
-        except Exception as e:
-            print("\nSomething went wrong:", e)
+        print("\nAI:", answer_question(question, df))
